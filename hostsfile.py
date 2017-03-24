@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 #####
 #
@@ -56,7 +56,7 @@ def main():
 
     try:
         f = open(filename)
-    except Exception, e:
+    except Exception as e:
         msg('E', 'Cannot open inventory file %s. %s' % (filename, str(e)))
 
     # Some default values
@@ -95,7 +95,7 @@ def main():
             # Parse hosts or group members/vars
             try:
                 tokens = shlex_split(line, comments=True)
-            except ValueError, e:
+            except ValueError as e:
                 msg('E', "Error parsing host definition '%s': %s" % (line, e))
 
             (hostnames, port) = mip._expand_hostpattern(tokens[0])
@@ -145,11 +145,11 @@ def main():
                         for key, val in variables.iteritems():
                             data['_meta']['hostvars'][host][key] = val
 
-    print json.dumps(data, sort_keys=True, indent=2)
+    print(json.dumps(data, sort_keys=True, indent=2))
 
     try:
         f.close()
-    except IOError, e:
+    except IOError as e:
         msg('E', 'Cannot close inventory file %s. %s' % (filename, str(e)))
 
 
