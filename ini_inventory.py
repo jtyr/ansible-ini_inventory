@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 
 #####
 #
@@ -16,7 +16,7 @@
 #####
 
 from ansible.utils.shlex import shlex_split
-from ansible.inventory.ini import InventoryParser
+from ansible.plugins.inventory.ini import InventoryModule
 
 import argparse
 import json
@@ -24,7 +24,7 @@ import os
 import sys
 
 
-class MyInventoryParser(InventoryParser):
+class MyInventoryModule(InventoryModule):
     def __init__(self):
         pass
 
@@ -43,7 +43,6 @@ def main():
     parser.add_argument(
         '--filename',
         metavar='filename',
-        required=True,
         help='Path to the inventory file')
     parser.add_argument(
         '--list',
@@ -52,7 +51,12 @@ def main():
     args = parser.parse_args()
 
     # Get the filename from the command line arguments
-    filename = args.filename
+    if args.filename:
+        filename = args.filename
+    elif 'INI_INVENTORY_FILENAME' in os.environ:
+        filename = os.environ['INI_INVENTORY_FILENAME']
+    else:
+        msg('E', 'No inventory file provided.')
 
     try:
         f = open(filename)
@@ -63,7 +67,7 @@ def main():
     data = {}
     group = None
     state = None
-    mip = MyInventoryParser()
+    mim = MyInventoryModule()
 
     # Walk through the file and build the data structure
     for line in f:
@@ -98,7 +102,7 @@ def main():
             except ValueError as e:
                 msg('E', "Error parsing host definition '%s': %s" % (line, e))
 
-            (hostnames, port) = mip._expand_hostpattern(tokens[0])
+            (hostnames, port) = mim._expand_hostpattern(tokens[0])
 
             # Create 'all' group if no group was defined yet
             if group is None:
@@ -125,10 +129,10 @@ def main():
                         "got: %s" % (t))
 
                 (k, v) = t.split('=', 1)
-                variables[k] = mip._parse_value(v)
+                variables[k] = mim._parse_value(v)
 
             if state == 'vars':
-                for key, val in variables.iteritems():
+                for key, val in variables.items():
                     data[group][state][key] = val
             else:
                 for host in hostnames:
@@ -142,10 +146,11 @@ def main():
 
                         data['_meta']['hostvars'][host] = {}
 
-                        for key, val in variables.iteritems():
+                        for key, val in variables.items():
                             data['_meta']['hostvars'][host][key] = val
 
-    print(json.dumps(data, sort_keys=True, indent=2))
+    if args.list:
+        print(json.dumps(data, sort_keys=True, indent=2))
 
     try:
         f.close()
